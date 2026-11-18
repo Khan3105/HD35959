@@ -1,0 +1,175 @@
+! HD 35929 asteroseismic grid — MESA r24.08.1 — PMS-ONLY EXTENSION
+! Non-rotating PMS, stopped at ZAMS. No rotation is injected.
+! Template variables: __MINI__, __ZINI__, __YINI__, __FOV__, __XC_STOP__
+! Identical to inlist_project except: no near-ZAMS rotation relax in
+! &star_job, and the run stops at ZAMS instead of TAMS.
+
+&star_job
+
+  ! --- Starting model ---
+    create_pre_main_sequence_model = .true.
+    warn_run_star_extras = .false.
+
+  ! --- Nuclear network ---
+    change_initial_net = .true.
+    new_net_name = 'pp_and_cno_extras.net'
+
+  ! --- Composition ---
+    initial_zfracs = 8
+
+  ! --- Rotation: none. near_zams_relax_omega_div_omega_crit stays at its
+  !     default (.false.), so the model never rotates.
+
+  ! --- Output ---
+    pgstar_flag = .false.
+    save_model_when_terminate = .true.
+    save_model_filename = 'final.mod'
+
+    history_columns_file = 'history_columns.list'
+    profile_columns_file = 'profile_columns.list'
+
+/ ! end of star_job namelist
+
+
+&eos
+/ ! end of eos namelist
+
+
+&kap
+    kap_file_prefix = 'a09'
+    kap_CO_prefix = 'a09_co'
+    kap_lowT_prefix = 'lowT_fa05_a09p'
+    use_Type2_opacities = .true.
+    kap_Type2_full_off_X = 1d-3
+    kap_Type2_full_on_X = 1d-6
+    Zbase = __ZINI__
+/ ! end of kap namelist
+
+
+&controls
+
+  ! ==================== Starting specifications ====================
+    initial_mass = __MINI__
+    initial_z = __ZINI__
+    initial_y = __YINI__
+
+  ! ==================== When to stop: ZAMS ====================
+  ! First model with Lnuc/L >= 0.99 -- the same ZAMS index_mesa.py uses
+  ! (LNUC_ZAMS) and the point where the main grid injected rotation.
+    stop_near_zams = .true.
+    Lnuc_div_L_zams_limit = 0.99d0
+  ! Safety net only: X_c = X_ini - 0.01 is early MS. At ZAMS X_c has dropped
+  ! by ~4e-4, so this fires only if the Lnuc/L stop never does.
+    xa_central_lower_limit_species(1) = 'h1'
+    xa_central_lower_limit(1) = __XC_STOP__
+
+  ! ==================== Convection ====================
+    use_Ledoux_criterion = .true.
+    mixing_length_alpha = 1.9d0
+    MLT_option = 'Henyey'
+    do_conv_premix = .true.
+
+  ! ==================== Overshooting ====================
+    overshoot_scheme(1) = 'exponential'
+    overshoot_zone_type(1) = 'any'
+    overshoot_zone_loc(1) = 'any'
+    overshoot_bdy_loc(1) = 'any'
+    overshoot_f(1) = __FOV__
+    overshoot_f0(1) = 0.005d0
+    overshoot_D_min = 5d-2
+
+  ! ==================== Radiative envelope mixing floor ====================
+    set_min_D_mix = .true.
+    min_D_mix = 1d0
+    remove_small_D_limit = 0
+
+  ! ==================== AM transport (Mombarg & Mathis 2026) ====================
+  ! Inactive without rotation; kept so this inlist differs from
+  ! inlist_project only where it has to.
+    set_uniform_am_nu_non_rot = .true.
+    uniform_am_nu_non_rot = 1d6           ! cm^2/s (Mombarg & Mathis 2026)
+    am_D_mix_factor = 0d0                 ! chemical mixing handled separately
+    D_DSI_factor = 0d0
+    D_SH_factor = 0d0
+    D_SSI_factor = 0d0
+    D_ES_factor = 0d0
+    D_GSF_factor = 0d0
+    D_ST_factor = 0d0
+
+  ! ==================== Energy equation ====================
+    energy_eqn_option = 'dedt'
+    use_gold_tolerances = .false.
+
+  ! ==================== Atmosphere ====================
+    atm_option = 'T_tau'
+    atm_T_tau_relation = 'Eddington'
+    atm_T_tau_opacity = 'varying'
+
+  ! ==================== GYRE pulse data ====================
+    pulse_data_format = 'GYRE'
+    write_pulse_data_with_profile = .true.
+    add_atmosphere_to_pulse_data = .true.
+    keep_surface_point_for_pulse_data = .false.
+    interpolate_rho_for_pulse_data = .true.
+    add_center_point_to_pulse_data = .true.
+    add_double_points_to_pulse_data = .true.
+
+  ! ==================== Output ====================
+    history_interval = 1
+    terminal_interval = 10
+    write_header_frequency = 10
+    photo_interval = 500000
+    profile_interval = 2
+    max_num_profile_models = 5000
+    write_profiles_flag = .true.
+    write_controls_info_with_profile = .false.
+
+  ! ==================== Brunt-Väisälä ====================
+    num_cells_for_smooth_gradL_composition_term = 0
+    num_cells_for_smooth_brunt_B = 0
+
+  ! ==================== Mesh ====================
+    mesh_delta_coeff = 0.5d0
+    max_allowed_nz = 50000
+    mesh_min_dlnR = 1d-9
+
+    xa_function_species(1) = 'he4'
+    xa_function_weight(1) = 100
+    xa_function_param(1) = 1d-2
+    xa_function_species(2) = 'he3'
+    xa_function_weight(2) = 100
+    xa_function_param(2) = 1d-5
+
+    mesh_dlogX_dlogP_extra(:) = 0.1
+    mesh_dlogX_dlogP_full_on(:) = 2
+    mesh_dlogX_dlogP_full_off(:) = 1
+
+    mesh_logX_species(1) = 'he4'
+    mesh_logX_min_for_extra(1) = -6
+    mesh_logX_species(2) = 'n14'
+    mesh_logX_min_for_extra(2) = -6
+    mesh_logX_species(3) = 'c12'
+    mesh_logX_min_for_extra(3) = -6
+
+    okay_to_remesh = .true.
+
+  ! ==================== Solver ====================
+    varcontrol_target = 1d-4
+
+  ! ==================== Timestep limits ====================
+    max_years_for_timestep = 1d7
+    delta_lgTeff_limit = 0.005d0
+    delta_lgL_limit = 0.02d0
+    time_delta_coeff = 1d0
+
+  ! ==================== Core boundary definitions ====================
+    he_core_boundary_h1_fraction = 1d-2
+    co_core_boundary_he4_fraction = 1d-2
+    one_core_boundary_he4_c12_fraction = 1d-2
+    min_boundary_fraction = 1d-2
+
+/ ! end of controls namelist
+
+
+&pgstar
+/ ! end of pgstar namelist
